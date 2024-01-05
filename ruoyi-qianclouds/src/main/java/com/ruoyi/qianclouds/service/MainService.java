@@ -117,8 +117,8 @@ public class MainService {
         // 月活跃量
         DateTime day30before = DateUtil.offsetDay(target, -30);
         long day30StartTime = DateUtil.beginOfDay(day30before).getTime();
-        long day30EndTime = DateUtil.endOfDay(day30before).getTime();
-        int day30Count = sessionMapper.todayActive(day30StartTime, day30EndTime).size();
+        long targetEndTime = DateUtil.endOfDay(target).getTime();
+        int day30Count = sessionMapper.todayActive(day30StartTime, targetEndTime).size();
         map.put("day30Count", day30Count);
 
 
