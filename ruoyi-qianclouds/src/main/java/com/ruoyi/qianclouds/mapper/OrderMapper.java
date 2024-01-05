@@ -15,7 +15,7 @@ import java.util.List;
 public interface OrderMapper {
 
 
-    @Select("select * from user_order where create_time > #{timeStr} and pay_platform != 'System'")
+    @Select("select * from user_order where create_time > #{timeStr} and (pay_platform is null or pay_platform != 'System')")
     List<OrderEntity> timeCreated(String timeStr);
 
 
