@@ -15,8 +15,8 @@ import java.util.List;
 @DataSource(value = DataSourceType.SLAVE)
 public interface LoginSessionMapper {
 
-    @Select("select count(1) from login_session where login_time >= #{time} group by user_id")
-    List<Integer> todayActive(long time);
+    @Select("select DISTINCT user_id from login_session where login_time >= #{time}")
+    List<String> todayActive(long time);
 
     @Select("SELECT DATE(FROM_UNIXTIME(login_time / 1000)) AS date_format,    \n" +
             "       COUNT(DISTINCT user_id) AS unique_user_count    \n" +

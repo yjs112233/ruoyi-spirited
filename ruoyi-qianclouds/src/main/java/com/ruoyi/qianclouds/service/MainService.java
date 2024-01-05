@@ -11,6 +11,7 @@ import com.ruoyi.qianclouds.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -31,20 +32,33 @@ public class MainService {
 
         // 今日活跃量
         long time = DateUtil.beginOfDay(new Date()).getTime();
-        int activeToday = sessionMapper.todayActive(time).size();
+        List<String> todayUsers = sessionMapper.todayActive(time);
+        int activeToday = todayUsers.size();
         map.put("activeToday", activeToday);
-
-        // 30日活跃量
+        // 次留量
+        List<String> lastUsers = getUserIds(-1);
+        List<String> day2List = new ArrayList<>(todayUsers);
+        day2List.retainAll(lastUsers);
+        map.put("day2Count", day2List.size());
+        // 7日留存
+        List<String> day7CompluteList = new ArrayList<>(todayUsers);
+        List<String> day3List = getUserIds(-2);
+        List<String> day4List = getUserIds(-3);
+        List<String> day5List = getUserIds(-4);
+        List<String> day6List = getUserIds(-5);
+        List<String> day7List = getUserIds(-6);
+        day7CompluteList.retainAll(day2List);
+        day7CompluteList.retainAll(day3List);
+        day7CompluteList.retainAll(day4List);
+        day7CompluteList.retainAll(day5List);
+        day7CompluteList.retainAll(day6List);
+        day7CompluteList.retainAll(day7List);
+        map.put("day7Count", day7CompluteList.size());
+        // 月活跃量
         DateTime day30before = DateUtil.offsetDay(new Date(), -30);
         long day30Time = DateUtil.beginOfDay(day30before).getTime();
-        List<HashMap<String, Integer>> day30Count = sessionMapper.day30Active(day30Time);
-
-        StringBuilder builder = new StringBuilder();
-        for (int i = day30Count.size() - 1; i >= 0 ; i--) {
-            HashMap<String, Integer> m = day30Count.get(i);
-            builder.append("<br>").append(m.get("date_format")).append("---------").append(m.get("unique_user_count"));
-        }
-        map.put("day30Count", builder.toString());
+        int day30Count = sessionMapper.todayActive(day30Time).size();
+        map.put("day30Count", day30Count);
 
         String todayStart = DateUtil.formatDateTime(DateUtil.beginOfDay(new Date()));
         // 今日新增用户量
@@ -86,5 +100,11 @@ public class MainService {
         map.put("monthMoney", monthMoney);
 
         return map;
+    }
+
+    private List<String> getUserIds(int offset){
+        DateTime lastDay = DateUtil.offsetDay(new Date(), offset);
+        List<String> users = userMapper.newUsers(DateUtil.formatDateTime(DateUtil.beginOfDay(lastDay)), DateUtil.formatDateTime(DateUtil.endOfDay(lastDay)));
+        return users;
     }
 }
