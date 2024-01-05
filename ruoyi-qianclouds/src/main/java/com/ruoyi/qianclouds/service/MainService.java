@@ -12,6 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,12 +58,23 @@ public class MainService {
 
     private String history(){
         StringBuilder builder = new StringBuilder();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        List<Future<HashMap<String, Object>>> list = new ArrayList<>();
+        for (int k = 1; k < 30 ; k++) {
+            DateTime day = DateUtil.offsetDay(new Date(), k * -1);
+            list.add(executorService.submit(() -> statistic(day)));
+        }
         for (int i = 1; i < 30 ; i++) {
             DateTime day = DateUtil.offsetDay(new Date(), i * -1);
             builder.append("<br>");
             builder.append("<br>");
             builder.append("日期：").append(DateUtil.formatDateTime(day)).append("===========");
-            HashMap<String, Object> map = statistic(day);
+            HashMap<String, Object> map = null;
+            try {
+                map = list.get(i - 1).get();
+            } catch (Exception e) {
+                builder.append("程序报错").append("=====");
+            }
             builder.append("日活===").append(map.get("activeToday")).append("===========");
             builder.append("次留===").append(map.get("day2Count")).append("===========");
             builder.append("7日留存===").append(map.get("day7Count")).append("===========");
