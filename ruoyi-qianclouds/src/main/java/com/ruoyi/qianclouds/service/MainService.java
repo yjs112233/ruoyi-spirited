@@ -31,7 +31,8 @@ public class MainService {
 
         // 本月收入
         String firstDayOfMonth = DateUtil.format(DateUtil.beginOfMonth(DateUtil.date()), "yyyy-MM-dd HH:mm:ss");
-        List<OrderEntity> monthOrderList = orderMapper.timeCreated(firstDayOfMonth);
+        String endDayOfMonth = DateUtil.format(DateUtil.endOfMonth(DateUtil.date()), "yyyy-MM-dd HH:mm:ss");
+        List<OrderEntity> monthOrderList = orderMapper.timeCreated(firstDayOfMonth, endDayOfMonth);
         List<OrderEntity> monthOrderSuccess = monthOrderList.stream().filter(orderEntity -> {
             return  "Alipay".equals(orderEntity.getPay_platform()) &&
                     "Success".equals(orderEntity.getPay_status());
@@ -56,16 +57,17 @@ public class MainService {
         for (int i = 1; i < 30 ; i++) {
             DateTime day = DateUtil.offsetDay(new Date(), i * -1);
             builder.append("<br>");
-            builder.append("日期：").append(DateUtil.formatDateTime(day)).append("<br>");
+            builder.append("<br>");
+            builder.append("日期：").append(DateUtil.formatDateTime(day)).append("===========");
             HashMap<String, Object> map = statistic(day);
-            builder.append("日活===").append(map.get("activeToday")).append("|||||");
-            builder.append("次留===").append(map.get("day2Count")).append("|||||");
-            builder.append("7日留存===").append(map.get("day7Count")).append("|||||");
-            builder.append("月活===").append(map.get("day30Count")).append("|||||");
-            builder.append("新用户===").append(map.get("newUsers")).append("|||||");
-            builder.append("订单创建量===").append(map.get("todayOrderCreated")).append("|||||");
-            builder.append("订单成交量===").append(map.get("todayOrderSuccessCount")).append("|||||");
-            builder.append("订单成交额===").append(map.get("todayMoney")).append("|||||");
+            builder.append("日活===").append(map.get("activeToday")).append("===========");
+            builder.append("次留===").append(map.get("day2Count")).append("===========");
+            builder.append("7日留存===").append(map.get("day7Count")).append("===========");
+            builder.append("月活===").append(map.get("day30Count")).append("===========");
+            builder.append("新用户===").append(map.get("newUsers")).append("===========");
+            builder.append("订单创建量===").append(map.get("todayOrderCreated")).append("===========");
+            builder.append("订单成交量===").append(map.get("todayOrderSuccessCount")).append("===========");
+            builder.append("订单成交额===").append(map.get("todayMoney"));
         }
         return builder.toString();
     }
@@ -102,16 +104,18 @@ public class MainService {
         int day30Count = sessionMapper.todayActive(day30Time).size();
         map.put("day30Count", day30Count);
 
-        String todayStart = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
+
+        String startTime = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
+        String endTime = DateUtil.formatDateTime(DateUtil.endOfDay(target));
         // 今日新增用户量
-        int newUsers = userMapper.todayNewUsers(todayStart);
+        int newUsers = userMapper.newUsers(startTime, endTime).size();
         map.put("newUsers", newUsers);
         // 用户总量
         int userTotal = userMapper.all();
         map.put("userTotal", userTotal);
 
         // 今日订单生成量
-        List<OrderEntity> list = orderMapper.timeCreated(todayStart);
+        List<OrderEntity> list = orderMapper.timeCreated(startTime, endTime);
         int todayOrderCreated = list.size();
         map.put("todayOrderCreated", todayOrderCreated);
         // 今日订单成交量
