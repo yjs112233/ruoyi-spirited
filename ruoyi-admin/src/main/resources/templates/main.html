@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html  lang="zh" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--360浏览器优先以webkit内核解析-->
+    <title>若依介绍</title>
+    <link rel="shortcut icon" href="favicon.ico">
+    <link href="../static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
+    <link href="../static/css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" rel="stylesheet"/>
+    <link href="../static/css/style.min.css" th:href="@{/css/style.min.css}" rel="stylesheet"/>
+</head>
+
+<body class="gray-bg">
+
+    <h2>小迈迁云后台管理系统</h2>
+
+	<h4>今日活跃量：<span id = "activeToday"></span> </h4>
+	<h4>近30日活跃量：<span id = "day30Count"></span></h4>
+	<br>
+	<h4>今日新增用户量：<span id = "newUsers"></span></h4>
+    <h4>当前用户总量：<span id = "userTotal"></span></h4>
+	<br>
+	<h4>次日留存量：</h4>
+	<h4>7日留存量：</h4>
+	<br>
+	<h4>今日订单生成量：<span id = "todayOrderCreated"></span></h4>
+	<h4>今日订单成交量：<span id = "todayOrderSuccessCount"></span></h4>
+
+	<br>
+	<h4>今日收入：<span id = "todayMoney"></span></h4>
+	<h4>本月收入：<span id = "monthMoney"></span></h4>
+
+
+	<script src="../static/js/jquery.min.js" th:src="@{/js/jquery.min.js}"></script>
+	<script src="../static/ajax/libs/validate/jquery.validate.min.js" th:src="@{/ajax/libs/validate/jquery.validate.min.js}"></script>
+	<script src="../static/ajax/libs/layer/layer.min.js" th:src="@{/ajax/libs/layer/layer.min.js}"></script>
+	<script src="../static/ajax/libs/blockUI/jquery.blockUI.js" th:src="@{/ajax/libs/blockUI/jquery.blockUI.js}"></script>
+	<script src="../static/ruoyi/js/ry-ui.js" th:src="@{/ruoyi/js/ry-ui.js?v=4.7.8}"></script>
+<script>
+
+	var host = "http://localhost/qianclouds/";
+	$(function() {
+		$.ajax({
+			type: "get",
+			url: host + "collect",
+			success: function(data) {
+				console.log(data);
+				document.getElementById("activeToday").innerHTML = data.activeToday
+				document.getElementById("day30Count").innerHTML = data.day30Count
+				document.getElementById("newUsers").innerHTML = data.newUsers
+				document.getElementById("userTotal").innerHTML = data.userTotal
+				document.getElementById("todayOrderCreated").innerHTML = data.todayOrderCreated
+				document.getElementById("todayOrderSuccessCount").innerHTML = data.todayOrderSuccessCount
+				document.getElementById("userTotal").innerHTML = data.userTotal
+				document.getElementById("monthMoney").innerHTML = data.monthMoney
+			}
+		});
+
+	})
+</script>
+</body>
+</html>
