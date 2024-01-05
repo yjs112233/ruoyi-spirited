@@ -15,7 +15,7 @@ import java.util.List;
 @DataSource(value = DataSourceType.SLAVE)
 public interface LoginSessionMapper {
 
-    @Select("select DISTINCT user_id from login_session where login_time >= #{startTime} and login_time <= #{endTime}")
+    @Select("select DISTINCT user_id from login_session where login_time >= #{param1} and login_time <= #{param2}")
     List<String> todayActive(long startTime, long endTime);
 
     @Select("SELECT DATE(FROM_UNIXTIME(login_time / 1000)) AS date_format,    \n" +
