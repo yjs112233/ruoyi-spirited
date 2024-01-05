@@ -75,8 +75,9 @@ public class MainService {
     private HashMap<String, Object> statistic(Date target){
         HashMap<String, Object> map = new HashMap<>();
         // 今日活跃量
-        long time = DateUtil.beginOfDay(target).getTime();
-        List<String> todayUsers = sessionMapper.todayActive(time);
+        long startTime = DateUtil.beginOfDay(target).getTime();
+        long endTime = DateUtil.endOfDay(target).getTime();
+        List<String> todayUsers = sessionMapper.todayActive(startTime, endTime);
         int activeToday = todayUsers.size();
         map.put("activeToday", activeToday);
         // 次留量
@@ -100,22 +101,23 @@ public class MainService {
         map.put("day7Count", day7CompluteList.size());
         // 月活跃量
         DateTime day30before = DateUtil.offsetDay(target, -30);
-        long day30Time = DateUtil.beginOfDay(day30before).getTime();
-        int day30Count = sessionMapper.todayActive(day30Time).size();
+        long day30StartTime = DateUtil.beginOfDay(day30before).getTime();
+        long day30EndTime = DateUtil.endOfDay(day30before).getTime();
+        int day30Count = sessionMapper.todayActive(day30StartTime, day30EndTime).size();
         map.put("day30Count", day30Count);
 
 
-        String startTime = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
-        String endTime = DateUtil.formatDateTime(DateUtil.endOfDay(target));
+        String startTimeStr = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
+        String endTimeStr = DateUtil.formatDateTime(DateUtil.endOfDay(target));
         // 今日新增用户量
-        int newUsers = userMapper.newUsers(startTime, endTime).size();
+        int newUsers = userMapper.newUsers(startTimeStr, endTimeStr).size();
         map.put("newUsers", newUsers);
         // 用户总量
         int userTotal = userMapper.all();
         map.put("userTotal", userTotal);
 
         // 今日订单生成量
-        List<OrderEntity> list = orderMapper.timeCreated(startTime, endTime);
+        List<OrderEntity> list = orderMapper.timeCreated(startTimeStr, endTimeStr);
         int todayOrderCreated = list.size();
         map.put("todayOrderCreated", todayOrderCreated);
         // 今日订单成交量
