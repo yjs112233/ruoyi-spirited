@@ -17,7 +17,7 @@ public interface UserMapper {
     @Select("select count(1) from user where create_time > #{timeStr}")
     int todayNewUsers(String timeStr);
 
-    @Select("select id from user where create_time >= #{startTime} and create_time <= #{endTime}")
+    @Select("select id from user where create_time >= #{param1} and create_time <= #{param2}")
     List<String> newUsers(String startTime, String endTime);
 
     @Select("select count(1) from user")
