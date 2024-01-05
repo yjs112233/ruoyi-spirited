@@ -47,6 +47,8 @@
 			success: function(data) {
 				console.log(data);
 				document.getElementById("activeToday").innerHTML = data.activeToday
+				document.getElementById("day2Count").innerHTML = data.day2Count
+				document.getElementById("day7Count").innerHTML = data.day7Count
 				document.getElementById("day30Count").innerHTML = data.day30Count
 				document.getElementById("newUsers").innerHTML = data.newUsers
 				document.getElementById("userTotal").innerHTML = data.userTotal
