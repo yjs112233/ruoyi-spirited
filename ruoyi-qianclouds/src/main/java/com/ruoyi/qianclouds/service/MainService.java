@@ -68,7 +68,7 @@ public class MainService {
             DateTime day = DateUtil.offsetDay(new Date(), i * -1);
             builder.append("<br>");
             builder.append("<br>");
-            builder.append("日期：").append(DateUtil.formatDateTime(day)).append("===========");
+            builder.append("日期：").append(DateUtil.formatDate(day)).append("===========");
             HashMap<String, Object> map = null;
             try {
                 map = list.get(i - 1).get();
