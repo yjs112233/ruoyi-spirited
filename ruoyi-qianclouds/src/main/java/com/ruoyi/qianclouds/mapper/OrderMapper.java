@@ -18,5 +18,9 @@ public interface OrderMapper {
     @Select("select * from user_order where create_time > #{param1} and create_time < #{param2} and (pay_platform is null or pay_platform != 'System')")
     List<OrderEntity> timeCreated(String startTime, String endTime);
 
+    @Select("select * from user_order where pay_status = 'Success' and pay_platform != 'System'")
+    List<OrderEntity> allSuccess();
 
+    @Select("select * from user_order where pay_status = 'Success' and user_id = #{userId}")
+    List<OrderEntity> getUserOrder(String userId);
 }

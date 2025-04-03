@@ -1,21 +1,22 @@
 package com.ruoyi.qianclouds.service;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.text.StrBuilder;
-import com.ruoyi.qianclouds.domain.LoginSessionEntity;
-import com.ruoyi.qianclouds.domain.OrderEntity;
-import com.ruoyi.qianclouds.mapper.LoginSessionMapper;
-import com.ruoyi.qianclouds.mapper.OrderMapper;
-import com.ruoyi.qianclouds.mapper.UserMapper;
+import com.ruoyi.common.utils.StringUtils;
+import com.ruoyi.qianclouds.domain.*;
+import com.ruoyi.qianclouds.mapper.*;
+import lombok.Data;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.DecimalFormat;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,28 +25,20 @@ public class MainService {
     @Autowired
     private UserMapper userMapper;
     @Autowired
+    private CloudMapper cloudMapper;
+    @Autowired
+    private TaskMapper taskMapper;
+    @Autowired
     private LoginSessionMapper sessionMapper;
     @Autowired
     private OrderMapper orderMapper;
+    @Autowired
+    private TransferSessionMapper transferSessionMapper;
 
     public HashMap<String, Object> collect(){
 
         Date target = new Date();
         HashMap<String, Object> map = statistic(target);
-
-        // 本月收入
-        String firstDayOfMonth = DateUtil.format(DateUtil.beginOfMonth(DateUtil.date()), "yyyy-MM-dd HH:mm:ss");
-        String endDayOfMonth = DateUtil.format(DateUtil.endOfMonth(DateUtil.date()), "yyyy-MM-dd HH:mm:ss");
-        List<OrderEntity> monthOrderList = orderMapper.timeCreated(firstDayOfMonth, endDayOfMonth);
-        List<OrderEntity> monthOrderSuccess = monthOrderList.stream().filter(orderEntity -> {
-            return  "Alipay".equals(orderEntity.getPay_platform()) &&
-                    "Success".equals(orderEntity.getPay_status());
-        }).collect(Collectors.toList());
-        double monthMoney = 0;
-        for (OrderEntity orderSuccess : monthOrderSuccess) {
-            monthMoney += Double.valueOf(orderSuccess.getPay_money());
-        }
-        map.put("monthMoney", monthMoney);
         map.put("statistic30", history());
         return map;
     }
@@ -54,6 +47,42 @@ public class MainService {
         DateTime lastDay = DateUtil.offsetDay(target, offset);
         List<String> users = userMapper.newUsers(DateUtil.formatDateTime(DateUtil.beginOfDay(lastDay)), DateUtil.formatDateTime(DateUtil.endOfDay(lastDay)));
         return users;
+    }
+
+    @SneakyThrows
+    public List<ActiveDTO> active(int count){
+        DateTime start = null;
+        DateTime end = null;
+        if (count > 0){
+            DateTime tatget = DateUtil.offsetMonth(DateUtil.date(), count * -1);
+            start = DateUtil.beginOfMonth(tatget);
+            end = DateUtil.endOfMonth(tatget);
+        }else {
+            start = DateUtil.beginOfMonth(new Date());
+            end = DateUtil.date();
+        }
+
+        List<DateTime> list = new ArrayList<>();
+        DateTime index = start;
+        while (!index.isAfter(end)){
+            list.add(index);
+            index = index.offsetNew(DateField.DAY_OF_MONTH, 1);
+        }
+
+        List<ActiveDTO> result = new Vector<>();
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        for (DateTime dateTime : list) {
+            executorService.execute(() ->{
+                ActiveDTO activeDTO = BeanUtil.mapToBean(statistic(dateTime), ActiveDTO.class, true);
+                activeDTO.setDateTime(dateTime.toDateStr());
+                result.add(activeDTO);
+            });
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.MINUTES);
+        return result.stream().sorted((a,b) ->{
+            return (int)(DateUtil.parse(a.getDateTime()).getTime() - DateUtil.parse(b.getDateTime()).getTime());
+        }).collect(Collectors.toList());
     }
 
     private String history(){
@@ -121,16 +150,82 @@ public class MainService {
         int day30Count = sessionMapper.todayActive(day30StartTime, targetEndTime).size();
         map.put("day30Count", day30Count);
 
-
         String startTimeStr = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
         String endTimeStr = DateUtil.formatDateTime(DateUtil.endOfDay(target));
+        List<OrderEntity> list = orderMapper.timeCreated(startTimeStr, endTimeStr);
+        int todayOrderCreated = list.size();
+        map.put("todayOrderCreated", todayOrderCreated);
+        // 今日订单成交量
+        List<OrderEntity> todayOrderSuccess = list.stream().filter(orderEntity -> {
+            return  "Alipay".equals(orderEntity.getPay_platform()) &&
+                    "Success".equals(orderEntity.getPay_status());
+        }).collect(Collectors.toList());
+        int todayOrderSuccessCount = todayOrderSuccess.size();
+        map.put("todayOrderSuccessCount", todayOrderSuccessCount);
+        // 今日订单成交额
+        double todayMoney = 0;
+        for (OrderEntity orderSuccess : todayOrderSuccess) {
+            todayMoney += Double.valueOf(orderSuccess.getPay_money());
+        }
+        map.put("amount", todayMoney);
+        return map;
+    }
+
+    public List<DetailDTO> detailsList(Date target){
+        List<DetailDTO> result = new ArrayList<>();
+        List<String> todayUserIds = sessionMapper.todayActive(DateUtil.beginOfDay(target).getTime(), DateUtil.endOfDay(target).getTime());
+        List<UserEntity> userEntities = userMapper.searchAccount(String.format("(%s)", String.join(",", todayUserIds)));
+        String startTimeStr = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
+        String endTimeStr = DateUtil.formatDateTime(DateUtil.endOfDay(target));
+        List<String> newUserIds = userMapper.newUsers(startTimeStr, endTimeStr);
+        for (String userId : todayUserIds) {
+            DetailDTO dto = new DetailDTO();
+            dto.setUserId(userId);
+            dto.setIsNew(newUserIds.contains(userId));
+            UserEntity entity = userEntities.stream().filter(userEntity -> userEntity.getId().equals(userId)).findAny().get();
+            if (entity.getAccount().startsWith("test")){
+                continue;
+            }
+            dto.setAccount(entity.getAccount());
+            List<CloudEntity> drives = cloudMapper.getUserDrives(userId);
+            dto.setDrives(drives.stream().map(CloudEntity::getDriveType).collect(Collectors.toList()));
+            List<OrderEntity> orders = orderMapper.getUserOrder(userId);
+            List<String> moneys=  orders.stream().map(OrderEntity::getPay_money).collect(Collectors.toList());
+            dto.setOrderMoney(String.join(",", moneys));
+            List<DetailDTO.Task> tasks = taskMapper.getAllTask(userId);
+            for (DetailDTO.Task task : tasks) {
+                CloudEntity cloud1 = drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getFrom())).findAny().get();
+                task.setFrom(cloud1.getDriveType());
+                CloudEntity cloud2 = drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getTo())).findAny().get();
+                task.setTo(cloud2.getDriveType());
+                if (StringUtils.isNotEmpty(task.getSize())){
+                    task.setSize(convert(Double.valueOf(task.getSize())));
+                }
+
+            }
+            dto.setTasks(tasks);
+            result.add(dto);
+        }
+        return result;
+    }
+
+    public HashMap<String, Object> users(Date target){
+        HashMap<String, Object> map = new HashMap<>();
+        String startTimeStr = DateUtil.formatDateTime(DateUtil.beginOfDay(target));
+        String endTimeStr = DateUtil.formatDateTime(DateUtil.endOfDay(target));
+        // 今日活跃量
+        List<String> todayUsers = sessionMapper.todayActive(DateUtil.beginOfDay(target).getTime(), DateUtil.endOfDay(target).getTime());
+        int activeToday = todayUsers.size();
+        map.put("activeToday", activeToday);
         // 今日新增用户量
         int newUsers = userMapper.newUsers(startTimeStr, endTimeStr).size();
         map.put("newUsers", newUsers);
-        // 用户总量
-        int userTotal = userMapper.all();
-        map.put("userTotal", userTotal);
-
+        // 今日云添加有效人数
+        int cloudUsers = cloudMapper.getValidUser(startTimeStr, endTimeStr);
+        map.put("cloudUsers", cloudUsers);
+        // 今天任务创建有效人数
+        int taskUsers = taskMapper.getValidUser(startTimeStr, endTimeStr);
+        map.put("taskUsers", taskUsers);
         // 今日订单生成量
         List<OrderEntity> list = orderMapper.timeCreated(startTimeStr, endTimeStr);
         int todayOrderCreated = list.size();
@@ -148,6 +243,69 @@ public class MainService {
             todayMoney += Double.valueOf(orderSuccess.getPay_money());
         }
         map.put("todayMoney", todayMoney);
+        // 本月
+        String firstDayOfMonth = DateUtil.format(DateUtil.beginOfMonth(target), "yyyy-MM-dd HH:mm:ss");
+        String endDayOfMonth = DateUtil.format(DateUtil.endOfMonth(target), "yyyy-MM-dd HH:mm:ss");
+        List<OrderEntity> monthOrderList = orderMapper.timeCreated(firstDayOfMonth, endDayOfMonth);
+        List<OrderEntity> monthOrderSuccess = monthOrderList.stream().filter(orderEntity -> {
+            return  "Alipay".equals(orderEntity.getPay_platform()) &&
+                    "Success".equals(orderEntity.getPay_status());
+        }).collect(Collectors.toList());
+        double monthMoney = 0;
+        for (OrderEntity orderSuccess : monthOrderSuccess) {
+            monthMoney += Double.valueOf(orderSuccess.getPay_money());
+        }
+        map.put("monthMoney", (int) monthMoney);
+
+        long startTime = DateUtil.beginOfMonth(target).getTime();
+        long endTime = DateUtil.endOfMonth(target).getTime();
+        int monthActives = sessionMapper.todayActive(startTime, endTime).size();
+        DecimalFormat df = new DecimalFormat("#.00");
+        String formattedResult = df.format((monthOrderSuccess.size() / (monthActives * 1.00) * 100));
+        map.put("monthActiveRate",formattedResult);
         return map;
+    }
+
+    public Map<String, Object> total(){
+        Map<String, Object> map = new HashMap<>();
+        // 总用户
+        int userTotal = userMapper.all();
+        map.put("userTotal", userTotal);
+        // 总交易e
+        List<OrderEntity> orders = orderMapper.allSuccess();
+        double all = 0;
+        for (OrderEntity order : orders) {
+            all += Double.valueOf(order.getPay_money());
+        }
+        map.put("amountTotal", (int)all);
+        // 总任数
+        int tasktotal = transferSessionMapper.transferTotal();
+        map.put("taskTotal", tasktotal);
+        return map;
+    }
+
+
+    public static final double KB = 1024.0;
+    public static String convert(double fileLength) {
+        if (fileLength / KB >= 1 && fileLength / KB <= 1024) {
+            double len = fileLength / KB;
+            len = Math.round(len * 100.00) / 100.00;
+            return len + "KB";
+        } else if (fileLength / KB / KB >= 1 && fileLength / KB / KB <= 1024) {
+            double len = fileLength / KB / KB;
+            len = Math.round(len * 100.00) / 100.00;
+            return len + "M";
+        } else if (fileLength >= 0 && fileLength <= 1024) {
+            return fileLength + "b";
+        } else if (fileLength / KB / KB / KB >= 1 && fileLength / KB / KB / KB <= 1024) {
+            double len = fileLength / KB / KB / KB;
+            len = Math.round(len * 100.00) / 100.00;
+            return len + "G";
+        } else if (fileLength / KB / KB / KB / KB >= 1 && fileLength / KB / KB / KB / KB <= 1024) {
+            double len = fileLength / KB / KB / KB / KB;
+            len = Math.round(len * 100.00) / 100.00;
+            return len + "T";
+        }
+        return fileLength + "B";
     }
 }

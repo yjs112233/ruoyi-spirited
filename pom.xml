@@ -163,7 +163,7 @@
             </dependency>
             <dependency>
                 <groupId>com.ruoyi</groupId>
-                <artifactId>qianclouds</artifactId>
+                <artifactId>ruoyi-qianclouds</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
             <!-- 核心模块-->

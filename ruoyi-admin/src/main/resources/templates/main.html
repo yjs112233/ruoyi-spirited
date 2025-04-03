@@ -9,30 +9,42 @@
     <link href="../static/css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" rel="stylesheet"/>
     <link href="../static/css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="../static/css/style.min.css" th:href="@{/css/style.min.css}" rel="stylesheet"/>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 
 <body class="gray-bg">
+    <div>总用户：<span id = "userTotal" style="margin-left: 5px"></span> 总交易额：<span id = "amountTotal" style="margin-left: 5px"></span> 总任务数：<span id = "taskTotal" style="margin-left: 5px"></span></div>
+    <button onclick="act(1)">上个月</button><button onclick="act(0),info(0)">本月</button> <button onclick="act(-1)">下个月</button>
+	<div id="box" style="width: 80%;height:400px;"></div>
+    <div style="margin-top: 10px">
+        <div>当日活跃量：<span id = "activeToday"></span></div>
+        <div>当日新增用户量：<span id = "newUsers"></span></div>
+        <div>当日云有效人数：<span id = "cloudUsers"></span></div>
+        <div>当天任务有效人数：<span id = "taskUsers"></span></div>
+        <div>当日订单生成量：<span id = "todayOrderCreated"></span></div>
+        <div>当日订单成交量：<span id = "todayOrderSuccessCount"></span></div>
+        <div>当日收入：<span id = "todayMoney"></span></div>
+        <div>当月收入：<span id = "monthMoney"></span></div>
+        <div>月活转化：<span id = "monthActiveRate"></span></div>
+    </div>
 
-    <h2>后台管理系统</h2>
+    <div id = "detailsList">
 
-	<h4>今日活跃量：<span id = "activeToday"></span> </h4>
-	<br>
-	<h4>次日留存量：<span id = "day2Count"></span></h4>
-	<h4>7日留存量：<span id = "day7Count"></span></h4>
-	<h4>月活跃量：<span id = "day30Count"></span></h4>
-	<br>
-	<h4>今日新增用户量：<span id = "newUsers"></span></h4>
-    <h4>当前用户总量：<span id = "userTotal"></span></h4>
-	<br>
-	<h4>今日订单生成量：<span id = "todayOrderCreated"></span></h4>
-	<h4>今日订单成交量：<span id = "todayOrderSuccessCount"></span></h4>
+    </div>
 
-	<br>
-	<h4>今日收入：<span id = "todayMoney"></span></h4>
-	<h4>本月收入：<span id = "monthMoney"></span></h4>
-	<br>
-	<br>
-	<h4>历史：<span id = "statistic30"></span></h4>
+	<script src="../static/js/echarts.min.js" th:src="@{/js/echarts.min.js}"></script>
 	<script src="../static/js/jquery.min.js" th:src="@{/js/jquery.min.js}"></script>
 	<script src="../static/ajax/libs/validate/jquery.validate.min.js" th:src="@{/ajax/libs/validate/jquery.validate.min.js}"></script>
 	<script src="../static/ajax/libs/layer/layer.min.js" th:src="@{/ajax/libs/layer/layer.min.js}"></script>
@@ -40,29 +52,206 @@
 	<script src="../static/ruoyi/js/ry-ui.js" th:src="@{/ruoyi/js/ry-ui.js?v=4.7.8}"></script>
 <script>
 
-	var host = "http://manager.qianclouds.com/qianclouds/";
-	$(function() {
-		$.ajax({
-			type: "get",
-			url: host + "collect",
-			success: function(data) {
-				console.log(data);
-				document.getElementById("activeToday").innerHTML = data.activeToday
-				document.getElementById("day2Count").innerHTML = data.day2Count
-				document.getElementById("day7Count").innerHTML = data.day7Count
-				document.getElementById("day30Count").innerHTML = data.day30Count
-				document.getElementById("newUsers").innerHTML = data.newUsers
-				document.getElementById("userTotal").innerHTML = data.userTotal
-				document.getElementById("todayOrderCreated").innerHTML = data.todayOrderCreated
-				document.getElementById("todayOrderSuccessCount").innerHTML = data.todayOrderSuccessCount
-				document.getElementById("userTotal").innerHTML = data.userTotal
-				document.getElementById("todayMoney").innerHTML = data.todayMoney
-				document.getElementById("monthMoney").innerHTML = data.monthMoney
-				document.getElementById("statistic30").innerHTML = data.statistic30
-			}
-		});
+    var monthCount = 0;
 
+	var chartDom = document.getElementById('box');
+	var myChart = echarts.init(chartDom);
+
+	var host = "http://localhost:83/qianclouds/";
+	$(function() {
+		act(0)
+        // console.log(data);
+        info(0);
+		detailsList(0)
+        total();
 	})
+
+    function total(){
+        $.ajax({
+            type: "get",
+            url: host + "total",
+            success: function (data) {
+                document.getElementById("userTotal").innerHTML = data.userTotal
+                document.getElementById("amountTotal").innerHTML = '￥'+ data.amountTotal
+                document.getElementById("taskTotal").innerHTML = data.taskTotal
+
+            }
+        });
+    }
+
+    function info(date) {
+        $.ajax({
+            type: "get",
+            url: host + "info/" + date,
+            success: function (data) {
+
+                document.getElementById("activeToday").innerHTML = data.activeToday
+                document.getElementById("newUsers").innerHTML = data.newUsers
+                document.getElementById("cloudUsers").innerHTML = data.cloudUsers
+                document.getElementById("taskUsers").innerHTML = data.taskUsers
+                document.getElementById("todayOrderCreated").innerHTML = data.todayOrderCreated
+                document.getElementById("todayOrderSuccessCount").innerHTML = data.todayOrderSuccessCount
+                document.getElementById("todayMoney").innerHTML = data.todayMoney
+                document.getElementById("monthMoney").innerHTML = data.monthMoney
+                document.getElementById("monthActiveRate").innerHTML = data.monthActiveRate + "%"
+
+            }
+        });
+    }
+
+    function detailsList(date) {
+        $.ajax({
+            type: "get",
+            url: host + "details/list/" + date,
+            success: function (data) {
+                // 获取detailsList的DOM元素
+                const detailsListDiv = document.getElementById('detailsList');
+                detailsListDiv.innerHTML = ''
+                // 创建表格元素
+                const table = document.createElement('table');
+
+                // 创建表头行
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const headers = [
+                    'User ID', 'Account', 'Is New', 'Drives', 'Tasks', 'Order Money'
+                ];
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // 创建表体行
+                const tbody = document.createElement('tbody');
+                data.forEach(detail => {
+                    const row = document.createElement('tr');
+
+                // 添加User ID
+                const userIdCell = document.createElement('td');
+                userIdCell.textContent = detail.userId;
+                row.appendChild(userIdCell);
+
+                // 添加Account
+                const accountCell = document.createElement('td');
+                accountCell.textContent = detail.account;
+                row.appendChild(accountCell);
+
+                // 添加Is New
+                const isNewCell = document.createElement('td');
+                isNewCell.textContent = detail.isNew ? 'Yes' : 'No';
+                row.appendChild(isNewCell);
+
+                // 添加Drives（作为逗号分隔的字符串）
+                const drivesCell = document.createElement('td');
+                drivesCell.textContent = detail.drives.join(', ');
+                row.appendChild(drivesCell);
+
+                // 添加Tasks（作为简化的字符串表示）
+                const tasksCell = document.createElement('td');
+                const tasksText = detail.tasks.map(task => `${task.from} to ${task.to} (${task.status},${task.count},${task.size})`).join('<br>');
+                tasksCell.innerHTML = tasksText; // 使用innerHTML来处理换行
+                row.appendChild(tasksCell);
+
+                // 添加Order Money
+                const orderMoneyCell = document.createElement('td');
+                orderMoneyCell.textContent = detail.orderMoney;
+                row.appendChild(orderMoneyCell);
+
+                // 将行添加到表体中
+                tbody.appendChild(row);
+            });
+                table.appendChild(tbody);
+
+                // 将表格添加到detailsListDiv中
+                detailsListDiv.appendChild(table);
+
+
+            }
+        });
+    }
+    function act(count) {
+        if (count == 1){
+            monthCount++;
+        }
+        if (count == 0){
+            monthCount = 0;
+        }
+        if (count == -1){
+            monthCount--;
+        }
+        $.ajax({
+            type: "get",
+            url: host + "active/" + monthCount,
+            success: function(data) {
+                let option = {
+                    legend: {
+                        data: ['日活', '次留','七留','月活'],
+                        selected:{'日活':true, '次留':true,'七留':true,'月活':false}
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: data.dates
+                    },
+                    yAxis: [
+                        {
+                            type: 'value',
+                        },
+                        {
+                            type: 'value',
+                            axisLabel: {
+                                formatter: '￥ {value} '
+                            }
+                        }
+                    ],
+                    series: [
+                        {
+                            name: '日活',
+                            data: data.activeToday,
+                            type: 'line'
+                        },
+                        {
+                            name: '次留',
+                            data: data.day2Count,
+                            type: 'line'
+                        },
+                        {
+                            name: '七留',
+                            data: data.day7Count,
+                            type: 'line'
+                        },
+                        {
+                            name: '月活',
+                            data: data.day30Count,
+                            type: 'line'
+                        },
+                        {
+                            name: '交易额',
+                            yAxisIndex: 1,
+                            tooltip: {
+                                valueFormatter: function (value) {
+                                    return '￥' + value;
+                                }
+                            },
+                            data: data.amount,
+                            type: 'bar'
+                        }
+                    ]
+                };
+
+                myChart.setOption(option);
+                myChart.on('click', function (params) {
+                    let date = params.name;
+                    info(date);
+                    const detailsListDiv = document.getElementById('detailsList');
+                    detailsListDiv.innerHTML = ''
+                    detailsList(date)
+                });
+            }
+        });
+    }
 </script>
 </body>
 </html>

@@ -78,7 +78,7 @@
         </dependency>
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>qianclouds</artifactId>
+            <artifactId>ruoyi-qianclouds</artifactId>
         </dependency>
     </dependencies>
 
