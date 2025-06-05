@@ -40,9 +40,9 @@
         <div>月活转化：<span id = "monthActiveRate"></span></div>
     </div>
 
-    <div id = "detailsList">
-
-    </div>
+    <div id = "detailsList"></div>
+    <button onclick="notVipDetailsList(-10)">统计</button>
+    <div id = "notVipDetailsList"></div>
 
 	<script src="../static/js/echarts.min.js" th:src="@{/js/echarts.min.js}"></script>
 	<script src="../static/js/jquery.min.js" th:src="@{/js/jquery.min.js}"></script>
@@ -100,6 +100,8 @@
     }
 
     function detailsList(date) {
+        const detailsListDiv = document.getElementById('notVipDetailsList');
+        detailsListDiv.innerHTML = ''
         $.ajax({
             type: "get",
             url: host + "details/list/" + date,
@@ -172,6 +174,88 @@
             }
         });
     }
+
+    function notVipDetailsList(offset) {
+        const detailsListDiv = document.getElementById('detailsList');
+        detailsListDiv.innerHTML = ''
+        $.ajax({
+            type: "get",
+            url: host + "task/newUser/" + offset,
+            success: function (map) {
+                let statistic = map.statistic;
+                let data = map.data;
+                // 获取detailsList的DOM元素
+                const detailsListDiv = document.getElementById('notVipDetailsList');
+                detailsListDiv.innerHTML = ''
+                const newLine = document.createElement('p');
+                newLine.textContent = statistic;
+                detailsListDiv.appendChild(newLine);
+                // 创建表格元素
+                const table = document.createElement('table');
+
+                // 创建表头行
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const headers = [
+                    'User ID', 'Account', 'Is New', 'Drives', 'Tasks', 'Order Money'
+                ];
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // 创建表体行
+                const tbody = document.createElement('tbody');
+                data.forEach(detail => {
+                    const row = document.createElement('tr');
+
+                    // 添加User ID
+                    const userIdCell = document.createElement('td');
+                    userIdCell.textContent = detail.userId;
+                    row.appendChild(userIdCell);
+
+                    // 添加Account
+                    const accountCell = document.createElement('td');
+                    accountCell.textContent = detail.account;
+                    row.appendChild(accountCell);
+
+                    // 添加Is New
+                    const isNewCell = document.createElement('td');
+                    isNewCell.textContent = detail.isNew ? 'Yes' : 'No';
+                    row.appendChild(isNewCell);
+
+                    // 添加Drives（作为逗号分隔的字符串）
+                    const drivesCell = document.createElement('td');
+                    drivesCell.textContent = detail.drives.join(', ');
+                    row.appendChild(drivesCell);
+
+                    // 添加Tasks（作为简化的字符串表示）
+                    const tasksCell = document.createElement('td');
+                    const tasksText = detail.tasks.map(task => `${task.from} to ${task.to} (${task.status},${task.count},${task.size})`).join('<br>');
+                    tasksCell.innerHTML = tasksText; // 使用innerHTML来处理换行
+                    row.appendChild(tasksCell);
+
+                    // 添加Order Money
+                    const orderMoneyCell = document.createElement('td');
+                    orderMoneyCell.textContent = detail.orderMoney;
+                    row.appendChild(orderMoneyCell);
+
+                    // 将行添加到表体中
+                    tbody.appendChild(row);
+                });
+                table.appendChild(tbody);
+
+                // 将表格添加到detailsListDiv中
+                detailsListDiv.appendChild(table);
+
+
+            }
+        });
+    }
+
     function act(count) {
         if (count == 1){
             monthCount++;

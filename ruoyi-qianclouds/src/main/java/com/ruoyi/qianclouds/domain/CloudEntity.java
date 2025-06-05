@@ -8,5 +8,7 @@ public class CloudEntity {
     private String id;
 
     private String driveType;
+
+    private String userId;
 }
 

@@ -20,6 +20,9 @@ public interface UserMapper {
     @Select("select id from user where create_time >= #{param1} and create_time <= #{param2}")
     List<String> newUsers(String startTime, String endTime);
 
+    @Select("select id from user where create_time >= #{param1} and create_time <= #{param2} and id not in (select user_id from user_order where pay_status = 'Success' and create_time >= #{param1} and create_time <= #{param2})")
+    List<String> newUsersNotVip(String startTime, String endTime);
+
     @Select("select count(1) from user")
     int all();
 

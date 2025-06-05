@@ -7,6 +7,8 @@ import java.util.List;
 @Data
 public class DetailDTO {
 
+    private String date;
+
     private String userId;
 
     private String account;

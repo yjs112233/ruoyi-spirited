@@ -9,17 +9,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/task")
+@RequestMapping("/qianclouds")
 public class TaskController {
 
     @Autowired
     private TaskService taskService;
 
-    @RequestMapping("info/{date}")
-    public void info(@PathVariable String date){
-        DateTime target = !date.equals("0") ? DateUtil.parse(date) : DateUtil.date();
-        taskService.newUserTasks(target);
+    @RequestMapping("task/newUser/{offser}")
+    public Map<String, Object> info(@PathVariable Integer offser){
+        return taskService.newUserTasks(offser);
     }
 }

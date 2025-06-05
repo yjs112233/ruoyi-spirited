@@ -43,7 +43,7 @@ public class MainService {
         return map;
     }
 
-    private List<String> getUserIds(Date target ,int offset){
+    public List<String> getUserIds(Date target ,int offset){
         DateTime lastDay = DateUtil.offsetDay(target, offset);
         List<String> users = userMapper.newUsers(DateUtil.formatDateTime(DateUtil.beginOfDay(lastDay)), DateUtil.formatDateTime(DateUtil.endOfDay(lastDay)));
         return users;
@@ -194,10 +194,10 @@ public class MainService {
             dto.setOrderMoney(String.join(",", moneys));
             List<DetailDTO.Task> tasks = taskMapper.getAllTask(userId);
             for (DetailDTO.Task task : tasks) {
-                CloudEntity cloud1 = drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getFrom())).findAny().get();
-                task.setFrom(cloud1.getDriveType());
-                CloudEntity cloud2 = drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getTo())).findAny().get();
-                task.setTo(cloud2.getDriveType());
+                drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getFrom()))
+                        .findAny().ifPresent(c -> task.setFrom(c.getDriveType()));
+
+                drives.stream().filter(cloudEntity -> cloudEntity.getId().equals(task.getTo())).findAny().ifPresent(c -> task.setTo(c.getDriveType()));
                 if (StringUtils.isNotEmpty(task.getSize())){
                     task.setSize(convert(Double.valueOf(task.getSize())));
                 }
