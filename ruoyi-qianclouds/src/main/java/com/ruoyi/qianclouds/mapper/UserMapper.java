@@ -24,8 +24,9 @@ public interface UserMapper {
     List<String> newUsersNotVip(String startTime, String endTime);
 
     @Select("select count(1) from user")
-    int all();
+    Integer all();
 
     @Select("select * from user where id in ${ids}")
     List<UserEntity> searchAccount(String ids);
+
 }

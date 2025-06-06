@@ -4,6 +4,7 @@ import com.ruoyi.common.annotation.DataSource;
 import com.ruoyi.common.enums.DataSourceType;
 import com.ruoyi.qianclouds.domain.DetailDTO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
 
@@ -24,4 +25,7 @@ public interface TaskMapper {
             "        END\n" +
             ") as `status`, d.total_file as count, d.total_size as size from transfer_session s left join  transfer_session_done d on s.session_done_id = d.id where s.user_id = #{userId} order by s.create_time desc")
     List<DetailDTO.Task> getAllTask(String userId);
+
+    @Select("select count(1) from transfer where create_time >= #{startTime} and create_time <= #{endTime}")
+    Integer count(@Param("startTime") String startTime, @Param("endTime") String endTime);
 }
